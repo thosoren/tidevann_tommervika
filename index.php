@@ -21,17 +21,7 @@ class SeaLevel {
 		$this->diveBoardHight = 803; //The hight from the diving board down to the sea bottom
 		$this->waterLevelOffset = 320; //How many cm to add to the curretn water level to get the depth from water surface to the bottom
 		$this->waterLevelOffsetBardoy = 50;
-		self::$isDaylightSaving = date('I');
 	}
-
-	private function currentTime() {
-		if($this->isDaylightSaving) {
-			return date('Y-m-d\TH:i:s',strtotime('+1 hours'));
-		} else {
-			return date('Y-m-d\TH:i:s',strtotime('+2 hours'));
-		}
-	}
-
 
 	public function getTides() {
 		$datatype = "tab";
@@ -45,8 +35,10 @@ class SeaLevel {
 
 		$tides = $array['locationdata']['data'];
 		$tidesArray = [];
+
 		foreach($tides['waterlevel'] as $key => $value) {
 			$tidesArray[] = $value['@attributes'];
+			
 		}
 
 		return $tidesArray;
@@ -58,6 +50,7 @@ class SeaLevel {
 		$url = "http://api.sehavniva.no/tideapi.php?lat={$this->lat}&lon={$this->lon}&fromtime={$this->from_time}&totime={$this->to_time}&datatype=$datatype&refcode=cd&lang=nb&interval=10&dst=1&tide_request=locationdata";
 		$xml = file_get_contents($url);
 
+
 		$data = simplexml_load_string($xml);
 		$json = json_encode($data);
 		$array = json_decode($json,true);
@@ -67,8 +60,9 @@ class SeaLevel {
 		$currentForcast = null;
 
 		foreach($forecasts as $forecast) {
+			//Strip the timezone part as it is already correct (some issue in the api)
 			$time = $forecast['@attributes']['time'];
-			if($time > date('Y-m-d\TH:i:s',strtotime('+2 hours'))) {
+			if($time > date('Y-m-d\TH:i:s')) {
 				$currentForcast['time'] = $lastForecast['@attributes']['time'];
 				$currentForcast['value'] = round($lastForecast['@attributes']['value']);
 				$currentForcast['direction'] = $lastForecast['@attributes']['value'] > $forecast['@attributes']['value'] ? "decreasing" : "increasing";
@@ -103,12 +97,7 @@ class SeaLevel {
 	}
 
 	public static function formatTime($t) {
-		if(self::$isDaylightSaving ) { //Check if daylight saving is in affect and add hours accordingly
-			$time = strtotime($t . " +1 hours");
-		} else {
-			$time = strtotime($t . " +2 hours");
-		}
-		
+		$time = strtotime($t);
 		return date('H:i',$time);
 	}
 
